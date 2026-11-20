@@ -1,0 +1,17 @@
+# Download the repository
+https://github.com/TimeXAIgroup/XAI4TSC/tree/main
+
+# Install the requirements to your python environment
+pip install -r requirements.txt
+
+# Go to the docs folder
+cd XAI4TSC/docs
+
+# Generate the documentation
+make html
+
+# Results will be under
+XAI4TSC/docs/build/html
+
+# Open the startpage with your browser
+XAI4TSC/docs/build/html/index.html

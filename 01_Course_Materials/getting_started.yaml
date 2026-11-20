@@ -1,0 +1,81 @@
+# =============================================================================
+# getting_started.yaml - the runner counterpart of examples/getting_started.py.
+#
+# Both do the same thing: train an FCN on UCR GunPoint with an 80/10/10 split,
+# score it on the test split, explain test samples 0, 1 and 2 with Integrated
+# Gradients, and score those explanations with Sparseness.
+#
+# Run it from the repository root:
+#     python -m experiment_runner --conf local/examples/getting_started.yaml
+#
+# The script writes to experiments/results/getting_started; so does this config,
+# via results_rel_path + experiment_name.
+# =============================================================================
+experiment_name: "getting_started"
+results_rel_path: "../results/config"
+
+# The script's `cache_dir` argument, which it leaves as None when run directly.
+# Set here so the UCR download and the computed splits are reused across runs.
+cache_path: "./cache/"
+
+general:
+  reproducible: true
+  seed: 0xDEADBEEF          # the script's `seed = 0xDEADBEEF`
+  device: "cpu"             # the script's `configure(device="cpu")`
+
+# --- Data: 80 / 10 / 10 train / val / test -----------------------------------
+# The script's `ds.split(train_split=0.8, val_split=0.1, random_state=seed)`.
+# val_split is taken from what training leaves, so 0.8 + 0.1 splits the
+# remaining 20 % evenly into validation and test.
+data_config:
+  default_settings:
+    train_split: 0.8
+    val_split: 0.1
+  datasets:
+    - dataset: "GunPoint"      # a UCR archive dataset, fetched by name
+
+# --- Model: the script's FCN(in_channels=1, num_classes=2) -------------------
+# in_channels and num_classes are auto-detected from the data, which gives 1
+# and 2 for GunPoint. Every model is scored on the test split after training,
+# so the script's evaluate_model() call needs no key of its own: the runner
+# writes models.csv plus a per-class results file, ROC and confusion matrix
+# next to the checkpoint.
+train_config:
+  default_settings:
+    hyperparams:
+      epochs: 50
+      batchsize: 32
+      learn_rate: 0.001
+      patience: 3
+      loss_func: "crossentropy"   # train_model's default
+      optimizer: "adam"           # train_model's default
+      save_best: true             # train_model's default
+    train: true
+  models:
+    - model: "FCN"
+
+# --- Explainer: the script's generate_explanation(...) -----------------------
+explanation_config:
+  default_settings:
+    target: "predicted"        # generate_explanation's default
+    samples:
+      type: "index"
+      indices: [0, 1, 2]       # the script's `indices=[0, 1, 2]`
+  explainers:
+    - method: Integrated_Gradients
+
+# --- Metric: the script's evaluate(metric="Complexity", ...) -----------------
+# The script passes exactly these three constructor arguments. return_aggregate
+# is false here only because master.yaml defaults it to true: left at the
+# default the runner would report one aggregated score where the script reports
+# one per explained sample.
+evaluation_config:
+  default_settings:
+    metric_class_params:
+      normalise: true
+      abs: true
+      disable_warnings: true
+      return_aggregate: false
+  metrics:
+    - metric: "Sparseness"
+
